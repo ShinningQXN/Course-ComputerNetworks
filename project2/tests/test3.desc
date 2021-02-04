@@ -1,0 +1,8 @@
+This test checks whether
+
+1) routers be able to handle topologies of large sizes.
+
+2) routes are correctly switched from best to second best when a link goes down in distance vector and link state
+
+3) routes are correctly switched back to best when a link comes back up.
+

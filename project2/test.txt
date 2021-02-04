@@ -1,0 +1,46 @@
+Test Strategy and Results
+
+Yuanyi Zhong
+
+
+We first test the three given "simpletest*" during the coding of the routing protocals. Most bugs are successfully corrected with these tests.
+
+1. "simpletest1" tests the transmission of ping/pong messages, periodic updates, as well as data packets. From both the DV and LS outputs of our program, we can see that, indeed, every 15 seconds a bunch of ping/pong messages are sent, and every 30 seconds DV or LS packets are sent. Also, data transmissions succeed at 1s, 100s, etc. Also, checking for timeout of port status and routing table is done per second, showing as an alarm event.
+
+2. "simpletest2" tests the correctness of behavior when link dies and comes up. When the link (1,2) dies at 150s, the ping-pong messages between them get lost (like at 150.01s); and at 156s, the port status of router 1 and 2 become timeout, DV or LS updates are sent then. Similarly, at 300s, the periodic port status checking (ping/pong) discovers that the link is back, which triggers another DV/LS updates.
+
+3. "simpletest3" tests if the algorithm can switch between best and second best routes when link dies and resumes. When link (3,4) is on, messages follow the route 2->1->3->4, and when the link is off, messages follow 2->4 directly at 650s.
+
+
+We used the first three simple tests at developement stage. After that, we designed the following test samples to further test the either the specific component level or the system level behavior the the program.
+
+4. "test1" has 4 nodes. We devised this test to again test the algorithm when link cost changes. The cost between (1,3) is reduced from 0.03 to 0.01, causing the best route between 1 and 4 to switch from 1->2->3->4 to 1->3->4.
+
+5. "test2" specifically test the correctness of poison reverse implementation. We borrows the idea from the homework problem. There are 4 routers in the graph. When the link (3,4) breaks down, it will form a routing loop between 1 and 3 if poison reverse is not implemented.
+
+6. "test3" is a relatively larger graph (8 nodes), to test if the algorithm scales.
+
+7. "test4" use the "prob" property of the link. The link between (1,2) is set to fail at probability 0.6. And router 1 and 2 repeatly send data packets to each other. We can see from the output that indeed the packet is lost sometimes.
+
+
+Finally, we used the linux tool "valgrind" to see if there is any memory leak. Unfortunately, the simulator itself has some inherit memory leaks that we are not supposed to fix. But besides that, there is no memory leak detected.
+
+Command line:
+	valgrind --leak-check=full --undef-value-errors=no ./Simulator simpletest1 LS > 1.txt
+
+Output: (the leak is caused by the simulator itself, not our algorithm...)
+==19314== HEAP SUMMARY:
+==19314==     in use at exit: 6,776 bytes in 40 blocks
+==19314==   total heap usage: 957 allocs, 917 frees, 51,286 bytes allocated
+==19314==
+==19314== 8 bytes in 1 blocks are definitely lost in loss record 3 of 30
+==19314==    at 0x4A075BC: operator new(unsigned long) (vg_replace_malloc.c:298)
+==19314==    by 0x410954: Simulator::init(char*) (in /storage-home/y/yz95/project2/Simulator)
+==19314==    by 0x40F2DB: main (in /storage-home/y/yz95/project2/Simulator)
+==19314==
+==19314== LEAK SUMMARY:
+==19314==    definitely lost: 8 bytes in 1 blocks
+==19314==    indirectly lost: 0 bytes in 0 blocks
+==19314==      possibly lost: 0 bytes in 0 blocks
+==19314==    still reachable: 6,768 bytes in 39 blocks
+==19314==         suppressed: 0 bytes in 0 blocks

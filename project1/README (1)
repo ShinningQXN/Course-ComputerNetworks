@@ -1,0 +1,157 @@
+COMP 429: Project 1 README file
+===============================
+Group members:
+Yuanyi Zhong (undergraduate)
+Xiangning Qi (graduate)
+
+=====================================
+Brief Problem Description
+-------------------------------
+In this project, we implemented two networked applications and protocols using sockets, which are
+
+(1) Ping-Pong client and server
+    The client and server "ping-pong" messages between them.
+
+(2) The web server (simple HTTP protocol)
+    The server functions as a web server, providing responses to HTTP requests, e.g. from web browsers.
+
+(3) In the addition, we conducted a measurement of the latency and bandwidth between two CLEAR servers, using part (1) as a tool. The detailed report of this part can be seen in 'part3.pdf'
+
+
+===============================
+Client Design
+-------------------------------
+The client design is relatively simple, and it follows the usual usage of socket as a client app.
+
+First, it reads the input arguments: host_name, port_number, size, and count; then validate the arguments.
+
+Then it create the socket, connect to the server, and send/receive the same message of 'size' bytes for 'count' times.
+
+Timestamp is saved in each packet, and the program also performs a integrity check of the received message to ensure nothing goes wrong in transmision.
+
+The average latency over 'count', which is the time of one ping-pong exchange, is printed out. An *inaccurate* estimation of bandwidth (using simple bits/time calculation) is also printed.
+
+
+===============================
+Server Design
+-------------------------------
+Although the server can run in two different modes, the basic network operations are the same, i.e. binding and listening to ports, managing multiple client connections. The difference lies only in how to process the stream data received from the clients.
+
+Multiple concurrent clients are handled using a link list with nodes recording the address, status, buffer and addition infomation.
+'status' in structure 'node' indicates the status of the connection, i.e. whether is pending in receiving data or sending data.
+'buf' in 'nodes' records all the data to be trasmitted through this connection. And this buffer is shared between reading and writing, since sending and receiving cannot happen at the same time thanks to the property of this particular problem.
+'cur_size' indicates the current count of bytes have been tranmitted.
+
+We use 'fd_set' to monitor the sockets, as the sample program does. When received data from a client, the program does different things depending on which mode it's on.
+If it's on web server mode, it parses only the HTTP GET request, and respond appropriately. If it's on ping-pong mode, it tries sending the pong message. In either mode, a pending mechanism is adopted to ensure transmissions are complete.
+
+
+===============================
+Test Program Design for Measurement (part 3)
+-------------------------------
+A small tool to gather data for the bandwidth measurement is also written (see test.cpp). It takes in two parameters, the host name and port number, and call './client' to do the measurement with different 'size' and 'count' setings, finally output the gathered data to 'result_size.csv' and 'result_cnt.csv'.
+
+
+
+===============================
+Tests and Results
+-------------------------------
+We wrote both the codes for Windows and Linux operating system, which are separated by '#ifdef' macros.
+Under Linux environment, simple command
+	make all
+will compile and link all the programs.
+
+We need to connect to the Rice CLEAR servers to do the test. SSH connections can be done using WinSCP/PuTTY on Windows, or open-ssh on Linux.
+
+
+(1) with ping-pong server
+Login one of the CLEAR servers, let's say 'sky.clear.rice.edu'.
+After making all the executives, change to the program directory, type in
+	./server 18010
+to run the server program as ping-pong server on port 18010.
+
+Open another SSH connection to, for example, 'water.clear.rice.edu', run the client using
+	./client sky.clear.rice.edu 18010 1000 10
+This will test the program using parameter 'size = 1000' and 'count = 10'.
+
+We could then monitor the console output of both client and server. If the server is compile with macro 'VERBOSE' on, details of connections and transmissions will be printed as:
+	[yz95@sky ~/project1]$ ./server 18010
+	ping-pong server set up, with port = 18010, sock = 3
+	Accepted connection. Client IP = 128.42.208.6
+	Received 1000 / 1000 bytes from sock = 4, IP = 128.42.208.6
+	received a ping from sock = 4, IP = 128.42.208.6, pong back
+	Sent 1000 / 1000 bytes to sock = 4, IP = 128.42.208.6
+	Received 1000 / 1000 bytes from sock = 4, IP = 128.42.208.6
+	received a ping from sock = 4, IP = 128.42.208.6, pong back
+	Sent 1000 / 1000 bytes to sock = 4, IP = 128.42.208.6
+	...... (repeated 10 times)
+	Received 1000 / 1000 bytes from sock = 4, IP = 128.42.208.6
+	received a ping from sock = 4, IP = 128.42.208.6, pong back
+	Sent 1000 / 1000 bytes to sock = 4, IP = 128.42.208.6
+	Close connection: sock = 4, IP = 128.42.208.6
+
+And client output:
+	 [yz95@water ~/project1]$ ./client sky.clear.rice.edu 18010 1000 10
+	average latency = 0.439 ms, bandwidth = 36.446469 Mbps
+
+We could vary the parameters to see different results. Notice that when 'size' is big, transmission can't be done within one 'send' or 'recv', thus the pending mechanism is necessary. As shown below
+	 [yz95@sky ~/project1]$ ./server 18010
+	ping-pong server set up, with port = 18010, sock = 3
+	Accepted connection. Client IP = 128.42.208.6
+	Received 7300 / 60000 bytes from sock = 4, IP = 128.42.208.6
+	Received 14600 / 60000 bytes from sock = 4, IP = 128.42.208.6
+	Received 21900 / 60000 bytes from sock = 4, IP = 128.42.208.6
+	Received 29200 / 60000 bytes from sock = 4, IP = 128.42.208.6
+	Received 32120 / 60000 bytes from sock = 4, IP = 128.42.208.6
+	Received 39420 / 60000 bytes from sock = 4, IP = 128.42.208.6
+	Received 46720 / 60000 bytes from sock = 4, IP = 128.42.208.6
+	Received 49640 / 60000 bytes from sock = 4, IP = 128.42.208.6
+	Received 56940 / 60000 bytes from sock = 4, IP = 128.42.208.6
+	Received 60000 / 60000 bytes from sock = 4, IP = 128.42.208.6
+	received a ping from sock = 4, IP = 128.42.208.6, pong back
+	Sent 21900 / 60000 bytes to sock = 4, IP = 128.42.208.6
+	Sent 58400 / 60000 bytes to sock = 4, IP = 128.42.208.6
+	Sent 60000 / 60000 bytes to sock = 4, IP = 128.42.208.6
+	Close connection: sock = 4, IP = 128.42.208.6
+
+We also tested the scenario of multiple clients - set one client running for a long time, then start another one (e.g. on local PC) to see if everything is alright. This tests the server with its ability of handle multiple connections.
+
+
+(2) with web server
+If everything is implemented correctly, we could verify it using a web browser. So, we tested the program with Internet Explorer and Chrome on windows.
+
+Login to the 'sky.clear.rice.edu' server, run the server using:
+	./server 18010 www sample_www
+
+Then goto the webbrowser, type in the address:
+	http://sky.clear.rice.edu:18010/
+
+Then the browser will navigate to the main page 'index.html' under 'sample_www' folder. And hopefully we can see
+	Click the hyperlink below: Sample webpage 
+displayed in the browser.
+Clicking the hyperlink will open a sample webpage (proj1.html, the modified COMP429 project1 description page).
+
+Further, we tested the server with incorrect URLs to see if it produces the proper response.
+
+Goto address:
+	http://sky.clear.rice.edu:18010/abc.html
+	or http://sky.clear.rice.edu:18010/def/
+
+And an HTTP 404 page is immediately seen in the browser, which is the correct response.
+
+A typical console output of the server will be like this:
+	 [yz95@sky ~/project1]$ ./server 18010 www sample_www
+	www server set up, with port = 18010, sock = 3, rootdir = sample_www
+	Accepted connection. Client IP = 10.127.79.130
+	Accepted connection. Client IP = 10.127.79.130
+	Accepted connection. Client IP = 10.127.79.130
+	Accepted connection. Client IP = 10.127.79.130
+	Close connection: sock = 5, IP = 10.127.79.130
+	Close connection: sock = 6, IP = 10.127.79.130
+	Close connection: sock = 7, IP = 10.127.79.130
+	Close connection: sock = 4, IP = 10.127.79.130
+
+
+===============================
+
+Sep 22, 2015

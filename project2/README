@@ -1,0 +1,10 @@
+Computer Networks - Project 2
+
+Group Members:
+Yuanyi Zhong
+Xiangning Qi
+Suhuai Song
+
+PS:
+1. Actualy, we did a small variation(optimization) to the DV implementation: instead of sending the entire DV table each time, we send only part of it in some circumstances to reduce the amount of data transferred.
+2. We used C++ STL library to faciliate the development.

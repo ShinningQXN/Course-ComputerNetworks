@@ -1,0 +1,7 @@
+Four nodes with delay changed, link dies and comes up.
+
+Tests whether 
+
+1) the routing algorithm is able to adjust its result when a link cost changes
+2) the algorithm is able to pick up a second best route when a link dies
+3) the best path is found again the the link comes up
